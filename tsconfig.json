@@ -3,5 +3,12 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  "compilerOptions": {
+    "outDir": "./out",
+    "rootDir": "./src",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "target": "es2020"
+  }
 }
