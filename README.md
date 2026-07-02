@@ -56,6 +56,7 @@ Notes:
 Run the UI:
 
 ```bash
+cd TaskOrchestratorAPI
 npm run dev
 ```
 
