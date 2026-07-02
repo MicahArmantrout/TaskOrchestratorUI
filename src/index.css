@@ -7,6 +7,10 @@
   --accent: #aa3bff;
   --accent-bg: rgba(170, 59, 255, 0.1);
   --accent-border: rgba(170, 59, 255, 0.5);
+  --danger: #dc2626;
+  --danger-border: #b91c1c;
+  --danger-disabled: #fca5a5;
+  --surface: #ffffff;
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
@@ -64,6 +68,28 @@
 
 body {
   margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.theme-dark,
+:root.theme-dark {
+  --text: #d1d5db;
+  --text-h: #f8fafc;
+  --bg: #0f172a;
+  --surface: #111827;
+  --border: #334155;
+  --code-bg: #1e293b;
+  --accent: #7dd3fc;
+  --accent-bg: rgba(59, 130, 246, 0.18);
+  --accent-border: rgba(56, 189, 248, 0.5);
+  --danger: #f87171;
+  --danger-border: #ef4444;
+  --danger-disabled: #7f1d1d;
+  --social-bg: rgba(29, 78, 216, 0.18);
+  --shadow:
+    rgba(0, 0, 0, 0.32) 0 10px 20px -4px, rgba(0, 0, 0, 0.18) 0 4px 8px -2px;
 }
 
 h1,
@@ -108,4 +134,29 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+/* Task table styling (light + dark via variables) */
+.task-table-container {
+  padding: 0.5rem;
+}
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.task-table th {
+  text-align: left;
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  color: var(--text-h);
+}
+.task-table td {
+  padding: 0.9rem 1rem;
+  color: var(--text);
+}
+.task-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+.task-table tbody tr:hover {
+  background: var(--accent-bg);
 }

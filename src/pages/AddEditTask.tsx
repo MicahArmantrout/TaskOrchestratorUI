@@ -30,6 +30,12 @@ interface TaskResponse {
   status?: string;
 }
 
+type AddEditTaskProps = {
+  isAuthenticated: boolean;
+  userId?: string;
+  authToken?: string | null;
+};
+
 const initialFormData: FormData = {
   title: '',
   description: '',
@@ -45,7 +51,7 @@ const normalizeStatus = (value: unknown): TaskStatus => {
   return TaskStatus.NotStarted;
 };
 
-const AddEditTask: React.FC = () => {
+const AddEditTask: React.FC<AddEditTaskProps> = ({ isAuthenticated, userId, authToken }) => {
   const { id } = useParams<{ id: string }>();
 
   const [formData, setFormData] = React.useState<FormData>(initialFormData);
@@ -71,7 +77,7 @@ const AddEditTask: React.FC = () => {
       setSuccessMessage('');
 
       try {
-        const task = await apiService.getTaskById(id) as TaskResponse;
+        const task = await apiService.getTaskById(id, authToken) as TaskResponse;
         setFormData({
           title: task.item ?? task.title ?? '',
           description: task.description ?? '',
@@ -87,7 +93,7 @@ const AddEditTask: React.FC = () => {
     };
 
     void loadTask();
-  }, [id]);
+  }, [id, authToken]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
@@ -99,6 +105,15 @@ const AddEditTask: React.FC = () => {
     setFormData((current) => ({ ...current, [name]: value } as FormData));
     setErrors((current) => ({ ...current, [name]: '' }));
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{ maxWidth: 650, padding: '1rem', margin: '0 auto', textAlign: 'center' }}>
+        <h2 style={{ marginBottom: '1rem' }}>Sign in to manage tasks</h2>
+        <p>Please sign in with Google to create or edit tasks.</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -118,21 +133,44 @@ const AddEditTask: React.FC = () => {
     setErrorMessage('');
 
     try {
-      const createdOn = new Date().toISOString();
-      const taskPayload = {
-        id: 0,
-        item: formData.title,
-        title: formData.title,
-        description: formData.description,
-        isComplete: formData.isComplete,
-        status: formData.status,
-        createdOn,
-        completedOn: createdOn,
-      };
+      if (!userId) {
+        throw new Error('Unable to save task without authenticated user id.');
+      }
 
-      await apiService.createTask(taskPayload);
-      setSuccessMessage('Task created successfully.');
-      setFormData({ title: '', description: '', isComplete: false, status: TaskStatus.NotStarted });
+      const createdOn = new Date().toISOString();
+
+      if (id) {
+        // Edit mode: call update endpoint
+        const updatePayload = {
+          id: parseInt(id, 10),
+          item: formData.title,
+          title: formData.title,
+          description: formData.description,
+          isComplete: formData.isComplete,
+          status: formData.status,
+          createdOn,
+          completedOn: createdOn,
+          userId,
+        };
+        await apiService.updateTask(id, updatePayload, authToken);
+        setSuccessMessage('Task updated successfully.');
+      } else {
+        // Create mode: call create endpoint
+        const createPayload = {
+          id: 0,
+          item: formData.title,
+          title: formData.title,
+          description: formData.description,
+          isComplete: formData.isComplete,
+          status: formData.status,
+          createdOn,
+          completedOn: createdOn,
+          userId,
+        };
+        await apiService.createTask(createPayload, authToken);
+        setSuccessMessage('Task created successfully.');
+        setFormData({ title: '', description: '', isComplete: false, status: TaskStatus.NotStarted });
+      }
       setErrors({});
     } catch (err: unknown) {
       if (err instanceof Error) setErrorMessage(err.message);
@@ -147,11 +185,11 @@ const AddEditTask: React.FC = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: '720px',
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
+          maxWidth: '620px',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
           borderRadius: '18px',
-          boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
+          boxShadow: 'var(--shadow)',
           padding: '1.5rem',
         }}
       >
@@ -162,23 +200,22 @@ const AddEditTask: React.FC = () => {
         ) : null}
         {errorMessage && !loading ? <p style={{ color: 'crimson', marginBottom: '0.9rem', textAlign: 'center' }}>{errorMessage}</p> : null}
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.9rem' }}>
-          <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: '14px', padding: '1rem 1rem 0.75rem', margin: 0 }}>
-            <legend style={{ textAlign: 'center', width: '100%', padding: '0 0.5rem', fontWeight: 600 }}>Please fill in the fields:</legend>
+          <fieldset style={{ border: '1px solid var(--border)', borderRadius: '14px', padding: '1rem 1rem 0.75rem', margin: 0 }}>
 
             <div style={{ marginBottom: '0.85rem' }}>
-              <label htmlFor="title" style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600 }}>Title</label>
+              <label htmlFor="title" style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, color: 'var(--text)' }}>Title</label>
               <input
                 id="title"
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                style={{ display: 'block', width: '100%', marginTop: '0.25rem', padding: '0.75rem 0.85rem', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '1rem' }}
+                style={{ display: 'block', width: '90%', maxWidth: '520px', marginTop: '0.25rem', padding: '0.7rem 0.8rem', border: '1px solid var(--border)', borderRadius: '10px', fontSize: '1rem', background: 'var(--surface)', color: 'var(--text)' }}
               />
               {errors.title && <div style={{ color: 'crimson', marginTop: '0.25rem' }}>{errors.title}</div>}
             </div>
 
             <div style={{ marginBottom: '0.85rem' }}>
-              <label htmlFor="isComplete" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+              <label htmlFor="isComplete" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: 'var(--text)' }}>
                 <input
                   type="checkbox"
                   id="isComplete"
@@ -192,25 +229,25 @@ const AddEditTask: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '0.85rem' }}>
-              <label htmlFor="description" style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600 }}>Description</label>
+              <label htmlFor="description" style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, color: 'var(--text)' }}>Description</label>
               <input
                 id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                style={{ display: 'block', width: '100%', marginTop: '0.25rem', padding: '0.75rem 0.85rem', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '1rem' }}
+                style={{ display: 'block', width: '90%', maxWidth: '520px', marginTop: '0.25rem', padding: '0.7rem 0.8rem', border: '1px solid var(--border)', borderRadius: '10px', fontSize: '1rem', background: 'var(--surface)', color: 'var(--text)' }}
               />
               {errors.description && <div style={{ color: 'crimson', marginTop: '0.25rem' }}>{errors.description}</div>}
             </div>
 
             <div style={{ marginBottom: '0.25rem' }}>
-              <label htmlFor="status" style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600 }}>Status</label>
+              <label htmlFor="status" style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, color: 'var(--text)' }}>Status</label>
               <select
                 id="status"
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                style={{ display: 'block', width: '100%', marginTop: '0.25rem', padding: '0.75rem 0.85rem', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '1rem', background: '#fff' }}
+                style={{ display: 'block', width: '90%', maxWidth: '520px', marginTop: '0.25rem', padding: '0.7rem 0.8rem', border: '1px solid var(--border)', borderRadius: '10px', fontSize: '1rem', background: 'var(--surface)', color: 'var(--text)' }}
               >
                 <option value={TaskStatus.NotStarted}>Not Started</option>
                 <option value={TaskStatus.InProgress}>In Progress</option>
@@ -226,19 +263,19 @@ const AddEditTask: React.FC = () => {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || loading}
             style={{
               padding: '0.8rem 1.1rem',
               border: 'none',
               borderRadius: '999px',
-              background: '#2563eb',
+              background: 'var(--accent)',
               color: '#fff',
               fontWeight: 700,
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              opacity: submitting ? 0.7 : 1,
+              cursor: submitting || loading ? 'not-allowed' : 'pointer',
+              opacity: submitting || loading ? 0.7 : 1,
             }}
           >
-            {submitting ? 'Submitting...' : 'Submit'}
+            {submitting ? (id ? 'Updating...' : 'Creating...') : id ? 'Update' : 'Create'}
           </button>
         </form>
       </div>
