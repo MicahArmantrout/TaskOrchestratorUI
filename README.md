@@ -98,6 +98,7 @@ For the current test setup, you need credentials from two different Google users
 - Dark / Light mode
 - Add tasks
 - Edit tasks
+- Delete tasks
 - Multi-user support
 - Google Sign-In
 - Data persists when API/UI restarts
